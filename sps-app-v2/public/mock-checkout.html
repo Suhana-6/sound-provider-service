@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mock Checkout - Sound Provider Service</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-box" style="text-align:center">
+      <div class="badge" style="margin-bottom:14px">DUMMY CHECKOUT · NO REAL MONEY</div>
+      <h1>Mock Payment Gateway</h1>
+      <p class="subtitle" id="mock-description">Loading...</p>
+      <div class="price" id="mock-amount" style="text-align:center">SAR 0.00</div>
+
+      <div class="field full">
+        <label>Card Number</label>
+        <input type="text" value="4111 1111 1111 1111" disabled />
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Expiry</label><input type="text" value="12/29" disabled /></div>
+        <div class="field"><label>CVC</label><input type="text" value="123" disabled /></div>
+      </div>
+
+      <div id="mock-notice"></div>
+
+      <button class="btn green block" style="margin-bottom:10px" onclick="completePayment('paid')">
+        Simulate Successful Payment
+      </button>
+      <button class="btn red block" onclick="completePayment('failed')">
+        Simulate Failed Payment
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get("payment_id");
+    const amount = params.get("amount");
+    const description = params.get("description");
+    const callbackUrl = params.get("callback_url");
+
+    document.getElementById("mock-description").textContent = description || "Payment";
+    document.getElementById("mock-amount").textContent = "SAR " + (amount || "0.00");
+
+    async function completePayment(status) {
+      const notice = document.getElementById("mock-notice");
+      notice.innerHTML = '<div class="notice">Processing...</div>';
+
+      try {
+        const res = await fetch(`/api/payments/mock/${encodeURIComponent(paymentId)}/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not process the simulated payment.");
+
+        const redirectUrl = new URL(callbackUrl, window.location.origin);
+        redirectUrl.searchParams.set("status", status);
+        window.location.href = redirectUrl.toString();
+      } catch (err) {
+        notice.innerHTML = `<div class="notice error">${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

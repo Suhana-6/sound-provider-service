@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Status - Sound Provider Service</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-box" style="text-align:center">
+      <h1>Payment Status</h1>
+      <div id="callback-body">
+        <p class="subtitle">Checking with the server...</p>
+      </div>
+      <button class="btn block" style="margin-top:18px" onclick="goHome()">Return to My Bookings</button>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const bookingId = params.get("booking_id");
+    const type = params.get("type"); // 'deposit' | 'final'
+
+    const body = document.getElementById("callback-body");
+
+    // Important: the redirect's own ?status=... query param is NOT trusted as
+    // proof of payment - it's only used to decide how long to keep polling.
+    // The only thing that actually confirms payment is the server's own
+    // record, which is only updated once the gateway (or, in mock mode, the
+    // mock checkout page) confirms the outcome server-to-server.
+    async function checkStatus(attempt) {
+      if (!getToken()) {
+        body.innerHTML = '<div class="notice error">You are not logged in. Please log in and check My Bookings.</div>';
+        return;
+      }
+
+      try {
+        let paid = false;
+        if (type === "final") {
+          const invoice = await api.getInvoiceByBooking(bookingId);
+          paid = invoice.status === "Paid";
+        } else {
+          const booking = await api.getBooking(bookingId);
+          paid = booking.deposit_status === "paid";
+        }
+
+        if (paid) {
+          body.innerHTML = `<div class="notice">Payment confirmed. Thank you!</div>`;
+          return;
+        }
+      } catch (err) {
+        body.innerHTML = `<div class="notice error">${err.message}</div>`;
+        return;
+      }
+
+      if (attempt >= 10) {
+        body.innerHTML = `
+          <div class="notice warn">
+            We haven't confirmed this payment yet. If you completed checkout, this can take
+            a few moments - check My Bookings shortly. If the payment failed or was
+            cancelled, you can try again from there.
+          </div>`;
+        return;
+      }
+
+      body.innerHTML = `<p class="subtitle">Checking with the server... (${attempt + 1})</p>`;
+      setTimeout(() => checkStatus(attempt + 1), 1500);
+    }
+
+    function goHome() {
+      localStorage.setItem("sps_redirect_screen", "customer-my-bookings");
+      window.location.href = "/";
+    }
+
+    checkStatus(0);
+  </script>
+</body>
+</html>
