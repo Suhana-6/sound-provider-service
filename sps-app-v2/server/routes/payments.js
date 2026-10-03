@@ -8,7 +8,7 @@ const { bookingWithJoins } = require("./bookings");
 const router = express.Router();
 
 function appBaseUrl() {
-  return process.env.APP_BASE_URL || "http://localhost:3000";
+  return process.env.APP_BASE_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";
 }
 
 function canAccessBooking(req, booking) {

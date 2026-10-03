@@ -59,7 +59,7 @@ function moyasarClient() {
 async function createInvoice({ amountSar, description, callbackUrl, metadata }) {
   if (isMock()) {
     const id = "mock_" + crypto.randomBytes(8).toString("hex");
-    const base = process.env.APP_BASE_URL || "http://localhost:3000";
+    const base = process.env.APP_BASE_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";
     const params = new URLSearchParams({
       payment_id: id,
       amount: amountSar.toFixed(2),

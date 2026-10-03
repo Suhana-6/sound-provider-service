@@ -14,8 +14,6 @@ services:
         value: /tmp/data.sqlite3
       - key: PAYMENT_MODE
         value: mock
-      - key: APP_BASE_URL
-        sync: false
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD

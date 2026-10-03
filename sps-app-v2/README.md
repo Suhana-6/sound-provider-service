@@ -42,10 +42,10 @@ first startup from your `.env` values — log in with those credentials.
 
 The repository includes a Render Blueprint in `../render.yaml`. In Render,
 create a new Blueprint instance from this GitHub repository, then provide
-`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_PHONE`, and
-`APP_BASE_URL` when prompted. Set `APP_BASE_URL` to the deployed HTTPS URL
-(for example, `https://sound-provider-service.onrender.com`). Payments default
-to mock mode; no real payment gateway is used.
+`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, and `ADMIN_PHONE` when prompted.
+The app uses Render's assigned HTTPS URL for payment redirects unless
+`APP_BASE_URL` is explicitly set. Payments default to mock mode; no real
+payment gateway is used.
 
 The free service stores SQLite at `/tmp/data.sqlite3`, which is temporary.
 Users, bookings, and other database records can be lost when the service
