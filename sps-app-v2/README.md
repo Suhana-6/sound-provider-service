@@ -28,7 +28,7 @@ for the full design rationale.
 ## Setup
 
 ```bash
-cd sps-app
+cd sps-app-v2
 npm install
 cp .env.example .env
 # edit .env: set ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME / ADMIN_PHONE at minimum
@@ -37,6 +37,21 @@ npm start
 
 Visit `http://localhost:3000`. The admin account is created automatically on
 first startup from your `.env` values — log in with those credentials.
+
+## Deploy to Render (free)
+
+The repository includes a Render Blueprint in `../render.yaml`. In Render,
+create a new Blueprint instance from this GitHub repository, then provide
+`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_PHONE`, and
+`APP_BASE_URL` when prompted. Set `APP_BASE_URL` to the deployed HTTPS URL
+(for example, `https://sound-provider-service.onrender.com`). Payments default
+to mock mode; no real payment gateway is used.
+
+The free service stores SQLite at `/tmp/data.sqlite3`, which is temporary.
+Users, bookings, and other database records can be lost when the service
+restarts or is redeployed. In-memory login sessions are also lost on restart.
+Use a paid service with a persistent disk before relying on this deployment
+for real customer data.
 
 ### Payments — dummy mode by default, no real money
 
