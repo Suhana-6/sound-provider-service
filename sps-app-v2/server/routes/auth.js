@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { hashPassword, verifyPassword, createSession, destroySession, requireAuth } = require("../auth");
+const notifications = require("../notifications");
 const v = require("../validators");
 
 const router = express.Router();
@@ -17,7 +18,7 @@ function nextEmployeeCode() {
 // ---------------------------------------------------------------------------
 // REGISTER (customer or technician only - admin is seeded separately)
 // ---------------------------------------------------------------------------
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   const role = req.body.role;
   if (!["customer", "technician"].includes(role)) {
     return res.status(400).json({ error: "Role must be 'customer' or 'technician'." });
@@ -71,6 +72,7 @@ router.post("/register", (req, res) => {
     ).all(userId).map((r) => r.specialty);
   }
 
+  await notifications.sendWelcomeNotification(user);
   res.status(201).json({ user: safeUser, token });
 });
 

@@ -1,10 +1,6 @@
 /**
- * Technician email notifications, sent when a deposit or final payment clears.
- *
- * Uses Nodemailer over SMTP - works with any provider (Brevo's free tier,
- * Gmail SMTP for local dev, etc). If SMTP isn't configured, notifications are
- * logged to the console instead of failing the request that triggered them -
- * email delivery must never block a webhook or the payment flow itself.
+ * Email notifications sent through SMTP. If SMTP is not configured, messages
+ * are logged instead of failing the request that triggered them.
  */
 
 const nodemailer = require("nodemailer");
@@ -16,7 +12,7 @@ function isConfigured() {
 let transporter = null;
 function getTransporter() {
   if (!isConfigured()) return null;
-   if (!transporter) {
+  if (!transporter) {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
@@ -28,13 +24,71 @@ function getTransporter() {
   return transporter;
 }
 
+async function sendNotification(to, subject, body, type) {
+  if (!to) return;
+
+  const t = getTransporter();
+  if (!t) {
+    console.log(`📧 [EMAIL DISABLED - would send] To: ${to}\nSubject: ${subject}\n${body}\n`);
+    return;
+  }
+
+  try {
+    await t.sendMail({
+      from: process.env.EMAIL_FROM || "no-reply@soundprovider.com",
+      to,
+      subject,
+      text: body,
+    });
+  } catch (err) {
+    console.error(`Failed to send ${type} email:`, err.message);
+  }
+}
+
+async function sendWelcomeNotification(user) {
+  if (!user || !user.email) return;
+
+  await sendNotification(
+    user.email,
+    "Welcome to Sound Provider Service",
+    [
+      `Hi ${user.name},`,
+      "",
+      `Your ${user.role} account has been created successfully.`,
+      "You can now log in to Sound Provider Service to manage your account.",
+    ].join("\n"),
+    "welcome"
+  );
+}
+
+async function sendBookingNotification(booking) {
+  if (!booking || !booking.customer_email) return;
+
+  await sendNotification(
+    booking.customer_email,
+    `Booking received - Booking #${booking.id}`,
+    [
+      `Hi ${booking.customer_name},`,
+      "",
+      `We've received your booking request (#${booking.id}).`,
+      `Service: ${booking.service_name || booking.service_id}`,
+      `Location: ${booking.location}`,
+      `Scheduled: ${booking.service_date} at ${booking.service_time}`,
+      `Deposit: SAR ${Number(booking.deposit_amount).toFixed(2)}`,
+      "",
+      "You can log in to view your booking and its status.",
+    ].join("\n"),
+    "booking"
+  );
+}
+
 /**
  * booking: the booking row (with service_name joined in, if available)
  * technician: the users row for the assigned technician
  * payment: { type: 'deposit'|'final', amount }
  */
 async function sendPaymentNotification(booking, technician, payment) {
-  if (!technician || !technician.email) return; // no one to notify
+  if (!technician || !technician.email) return;
 
   const subject = payment.type === "deposit"
     ? `Deposit received - Booking #${booking.id}`
@@ -53,24 +107,7 @@ async function sendPaymentNotification(booking, technician, payment) {
     `Scheduled: ${booking.service_date} at ${booking.service_time}`,
   ].join("\n");
 
-  const t = getTransporter();
-  if (!t) {
-    console.log(`📧 [EMAIL DISABLED - would send] To: ${technician.email}\nSubject: ${subject}\n${body}\n`);
-    return;
-  }
-
-  try {
-    await t.sendMail({
-      from: process.env.EMAIL_FROM || "no-reply@soundprovider.com",
-      to: technician.email,
-      subject,
-      text: body,
-    });
-  } catch (err) {
-    // Never let email failure break the caller (e.g. a webhook handler) -
-    // log it for manual follow-up instead.
-    console.error("Failed to send technician notification email:", err.message);
-  }
+  await sendNotification(technician.email, subject, body, "technician payment notification");
 }
 
 /**
@@ -78,7 +115,7 @@ async function sendPaymentNotification(booking, technician, payment) {
  * payment: { type: 'deposit'|'final', amount }
  */
 async function sendCustomerPaymentNotification(booking, payment) {
-  if (!booking || !booking.customer_email) return; // no address to send to
+  if (!booking || !booking.customer_email) return;
 
   const subject = payment.type === "deposit"
     ? `Your deposit was received - Booking #${booking.id}`
@@ -96,24 +133,13 @@ async function sendCustomerPaymentNotification(booking, payment) {
     `Scheduled: ${booking.service_date} at ${booking.service_time}`,
   ].join("\n");
 
-  const t = getTransporter();
-  if (!t) {
-    console.log(`📧 [EMAIL DISABLED - would send] To: ${booking.customer_email}\nSubject: ${subject}\n${body}\n`);
-    return;
-  }
-
-  try {
-    await t.sendMail({
-      from: process.env.EMAIL_FROM || "no-reply@soundprovider.com",
-      to: booking.customer_email,
-      subject,
-      text: body,
-    });
-  } catch (err) {
-    // Never let email failure break the caller (e.g. a webhook handler) -
-    // log it for manual follow-up instead.
-    console.error("Failed to send customer notification email:", err.message);
-  }
+  await sendNotification(booking.customer_email, subject, body, "customer payment notification");
 }
 
-module.exports = { isConfigured, sendPaymentNotification, sendCustomerPaymentNotification };
+module.exports = {
+  isConfigured,
+  sendWelcomeNotification,
+  sendBookingNotification,
+  sendPaymentNotification,
+  sendCustomerPaymentNotification,
+};

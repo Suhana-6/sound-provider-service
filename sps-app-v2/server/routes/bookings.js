@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { requireAuth } = require("../auth");
+const notifications = require("../notifications");
 const v = require("../validators");
 const { calculatePrice, calculateDeposit, VAT_RATE } = require("../pricing");
 const { isTechnicianBooked } = require("./technicians");
@@ -143,7 +144,7 @@ router.get("/bookings/:id", requireAuth(), (req, res) => {
 // ---------------------------------------------------------------------------
 // CREATE
 // ---------------------------------------------------------------------------
-router.post("/bookings", requireAuth(["customer"]), (req, res) => {
+router.post("/bookings", requireAuth(["customer"]), async (req, res) => {
   const isRepair = req.body.service_id === "repair";
   const errors = v.validateBookingPayload(req.body, isRepair);
   if (errors.length) return res.status(400).json({ error: errors[0], errors });
@@ -194,7 +195,9 @@ router.post("/bookings", requireAuth(["customer"]), (req, res) => {
 
   recordStatusChange(info.lastInsertRowid, null, "Pending", req.user.id);
 
-  res.status(201).json(bookingWithJoins(info.lastInsertRowid));
+  const booking = bookingWithJoins(info.lastInsertRowid);
+  await notifications.sendBookingNotification(booking);
+  res.status(201).json(booking);
 });
 
 // ---------------------------------------------------------------------------

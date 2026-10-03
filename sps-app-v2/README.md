@@ -80,12 +80,19 @@ The mock checkout is automatically and completely disabled the moment
 `PAYMENT_MODE=moyasar` is set — its backend endpoint returns 404, so there's
 no way to "fake" a payment once real mode is on.
 
-### Email notifications (optional for local testing)
+### Email notifications
 
-Leave `SMTP_HOST` blank to log notification emails to the console instead of
-sending them. To enable real sending, set `SMTP_HOST`, `SMTP_PORT`,
-`SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` — works with Brevo's free SMTP relay
-(300 emails/day, no card required) or Gmail SMTP with an app password.
+The app sends welcome emails at registration, booking confirmations to
+customers, and payment confirmations to customers and assigned technicians.
+Without SMTP settings, messages are logged to the server console instead of
+being delivered.
+
+To enable delivery, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASS`, and `EMAIL_FROM` in the hosting provider's environment settings.
+Use your email provider's SMTP credentials and a verified sender address.
+For Gmail, use an app password (not your account password); Brevo also provides
+SMTP relay credentials on its free tier. Never commit these credentials or
+share them in chat.
 
 ## Project structure
 
