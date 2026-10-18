@@ -866,6 +866,11 @@ function renderAdminDashboard() {
   ];
   return layout(`
     <div class="section-title">Admin Dashboard</div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="section-title">Clear hosted application data</div>
+      <p>This permanently removes all customer and technician accounts, bookings, payments, invoices, and meeting records. Your administrator account and service catalog will remain.</p>
+      <button class="btn red" onclick="adminClearApplicationData()">Clear all application data</button>
+    </div>
     <div class="grid">
       ${cards.map(([label, value]) => `
         <div class="card">
@@ -876,6 +881,25 @@ function renderAdminDashboard() {
     </div>
   `);
 }
+
+async function adminClearApplicationData() {
+  if (!confirm("This permanently deletes all customer and technician accounts and all booking/payment/invoice/meeting records. Your admin account and service catalog will remain. Continue?")) return;
+  if (prompt('Type "CLEAR ALL DATA" to confirm this permanent deletion:') !== "CLEAR ALL DATA") return;
+
+  await withLoading(async () => {
+    await api.clearApplicationData("CLEAR ALL DATA");
+    goto("admin-dashboard", {
+      dashboardStats: null,
+      allBookings: [],
+      _bookingsLoaded: false,
+      allTechnicians: [],
+      allInvoices: [],
+      _invoicesLoaded: false,
+      notice: { type: "ok", text: "Application data was cleared. Your administrator account and service catalog were kept." },
+    });
+  });
+}
+window.adminClearApplicationData = adminClearApplicationData;
 
 // ---------------------------------------------------------------------------
 // ADMIN: All Bookings (assign/reassign, status override, waive deposit)

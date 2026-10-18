@@ -94,6 +94,11 @@ For Gmail, use an app password (not your account password); Brevo also provides
 SMTP relay credentials on its free tier. Never commit these credentials or
 share them in chat.
 
+An authenticated administrator can clear customer and technician accounts,
+bookings, payments, invoices, and meeting records from the Admin Dashboard.
+The administrator account and service catalog are kept so the app remains
+accessible after clearing.
+
 ## Project structure
 
 ```

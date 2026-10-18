@@ -48,6 +48,12 @@ function destroySession(token) {
   sessions.delete(token);
 }
 
+function destroySessionsExcept(userId) {
+  for (const [token, session] of sessions) {
+    if (session.id !== userId) sessions.delete(token);
+  }
+}
+
 /**
  * Express middleware factory.
  * requireAuth() - any logged-in user.
@@ -79,5 +85,5 @@ function requireAuth(allowedRoles = null) {
 
 module.exports = {
   hashPassword, verifyPassword,
-  createSession, getSession, destroySession, requireAuth,
+  createSession, getSession, destroySession, destroySessionsExcept, requireAuth,
 };

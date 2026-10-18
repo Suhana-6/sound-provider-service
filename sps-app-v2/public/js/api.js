@@ -82,4 +82,5 @@ const api = {
 
   // admin dashboard
   dashboardStats: () => request("GET", "/dashboard/stats"),
+  clearApplicationData: (confirmation) => request("DELETE", "/admin/data", { confirmation }),
 };
