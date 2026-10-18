@@ -1,12 +1,23 @@
 /**
- * Email notifications sent through SMTP. If SMTP is not configured, messages
- * are logged instead of failing the request that triggered them.
+ * Uses Brevo's HTTPS API when configured (suitable for Render free services),
+ * and SMTP for local development or hosts that allow outbound SMTP.
  */
-
+const axios = require("axios");
 const nodemailer = require("nodemailer");
 
+function missingConfiguration() {
+  if (process.env.NODE_ENV === "production" || process.env.BREVO_API_KEY) {
+    const missing = [];
+    if (!process.env.BREVO_API_KEY) missing.push("BREVO_API_KEY");
+    if (!process.env.EMAIL_FROM) missing.push("EMAIL_FROM");
+    return missing;
+  }
+  return ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"]
+    .filter((key) => !process.env[key]);
+}
+
 function isConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return missingConfiguration().length === 0;
 }
 
 let transporter = null;
@@ -25,46 +36,69 @@ function getTransporter() {
 }
 
 async function sendNotification(to, subject, body, type) {
-  if (!to) return;
+  if (!to) return false;
 
-  const t = getTransporter();
-  if (!t) {
-    console.log(`📧 [EMAIL DISABLED - would send] To: ${to}\nSubject: ${subject}\n${body}\n`);
-    return;
+  const missing = missingConfiguration();
+  if (missing.length) {
+    console.error(`Email not sent; missing configuration: ${missing.join(", ")}`);
+    return false;
   }
 
   try {
-    await t.sendMail({
-      from: process.env.EMAIL_FROM || "no-reply@soundprovider.com",
-      to,
-      subject,
-      text: body,
-    });
+    let messageId;
+    if (process.env.NODE_ENV === "production" || process.env.BREVO_API_KEY) {
+      const sender = /^(.*?)\s*<([^<>]+)>$/.exec(process.env.EMAIL_FROM);
+      const response = await axios.post(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+          sender: sender
+            ? { name: sender[1].replace(/^["']|["']$/g, "").trim(), email: sender[2].trim() }
+            : { email: process.env.EMAIL_FROM.trim() },
+          to: [{ email: to }],
+          subject,
+          textContent: body,
+        },
+        { headers: { "api-key": process.env.BREVO_API_KEY }, timeout: 10000 }
+      );
+      messageId = response.data.messageId;
+    } else {
+      const result = await getTransporter().sendMail({
+        from: process.env.EMAIL_FROM || "no-reply@soundprovider.com",
+        to,
+        subject,
+        text: body,
+      });
+      messageId = result.messageId;
+    }
+    console.log(`Sent ${type} email. Message ID: ${messageId}`);
+    return true;
   } catch (err) {
-    console.error(`Failed to send ${type} email:`, err.message);
+    const providerMessage = err.response && err.response.data && err.response.data.message;
+    console.error(`Failed to send ${type} email:`, providerMessage || err.message);
+    return false;
   }
 }
 
 async function sendWelcomeNotification(user) {
-  if (!user || !user.email) return;
+  if (!user || !user.email) return false;
 
-  await sendNotification(
+  return sendNotification(
     user.email,
-    "Welcome to Sound Provider Service",
+    "Welcome to Project Sound Company",
     [
       `Hi ${user.name},`,
       "",
       `Your ${user.role} account has been created successfully.`,
-      "You can now log in to Sound Provider Service to manage your account.",
+      "You can now log in to Project Sound Company to manage your account.",
     ].join("\n"),
     "welcome"
   );
 }
 
 async function sendBookingNotification(booking) {
-  if (!booking || !booking.customer_email) return;
+  if (!booking || !booking.customer_email) return false;
 
-  await sendNotification(
+  return sendNotification(
     booking.customer_email,
     `Booking received - Booking #${booking.id}`,
     [
@@ -88,7 +122,7 @@ async function sendBookingNotification(booking) {
  * payment: { type: 'deposit'|'final', amount }
  */
 async function sendPaymentNotification(booking, technician, payment) {
-  if (!technician || !technician.email) return;
+  if (!technician || !technician.email) return false;
 
   const subject = payment.type === "deposit"
     ? `Deposit received - Booking #${booking.id}`
@@ -107,7 +141,7 @@ async function sendPaymentNotification(booking, technician, payment) {
     `Scheduled: ${booking.service_date} at ${booking.service_time}`,
   ].join("\n");
 
-  await sendNotification(technician.email, subject, body, "technician payment notification");
+  return sendNotification(technician.email, subject, body, "technician payment notification");
 }
 
 /**
@@ -115,7 +149,7 @@ async function sendPaymentNotification(booking, technician, payment) {
  * payment: { type: 'deposit'|'final', amount }
  */
 async function sendCustomerPaymentNotification(booking, payment) {
-  if (!booking || !booking.customer_email) return;
+  if (!booking || !booking.customer_email) return false;
 
   const subject = payment.type === "deposit"
     ? `Your deposit was received - Booking #${booking.id}`
@@ -133,7 +167,7 @@ async function sendCustomerPaymentNotification(booking, payment) {
     `Scheduled: ${booking.service_date} at ${booking.service_time}`,
   ].join("\n");
 
-  await sendNotification(booking.customer_email, subject, body, "customer payment notification");
+  return sendNotification(booking.customer_email, subject, body, "customer payment notification");
 }
 
 module.exports = {

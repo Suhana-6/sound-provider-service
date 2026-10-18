@@ -1,4 +1,4 @@
-# Sound Provider Service — v2
+# Project Sound Company
 
 A ground-up rebuild of the booking & management platform for automatic door/window
 installation, repair, and maintenance (Dammam, Saudi Arabia). See
@@ -21,7 +21,7 @@ for the full design rationale.
   against). Booking creation is never blocked by a failed/abandoned deposit —
   it's just flagged `unpaid` for follow-up.
 - **Technician email notifications** on both deposit and final payment,
-  sent via Nodemailer/SMTP.
+  sent via Brevo's HTTPS API on Render or Nodemailer/SMTP locally.
 - **bcrypt password hashing** (v1 stored plain text — fixed).
 - Every screen redesigned with inline field-level validation.
 
@@ -42,7 +42,9 @@ first startup from your `.env` values — log in with those credentials.
 
 The repository includes a Render Blueprint in `../render.yaml`. In Render,
 create a new Blueprint instance from this GitHub repository, then provide
-`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, and `ADMIN_PHONE` when prompted.
+`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_PHONE`, `BREVO_API_KEY`,
+and `EMAIL_FROM` when prompted. For an existing service, add `BREVO_API_KEY`
+and `EMAIL_FROM` in its Environment settings and redeploy.
 The app uses Render's assigned HTTPS URL for payment redirects unless
 `APP_BASE_URL` is explicitly set. Payments default to mock mode; no real
 payment gateway is used.
@@ -84,15 +86,18 @@ no way to "fake" a payment once real mode is on.
 
 The app sends welcome emails at registration, booking confirmations to
 customers, and payment confirmations to customers and assigned technicians.
-Without SMTP settings, messages are logged to the server console instead of
-being delivered.
+Without email provider settings, messages are logged to the server console
+instead of being delivered.
 
-To enable delivery, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
-`SMTP_PASS`, and `EMAIL_FROM` in the hosting provider's environment settings.
-Use your email provider's SMTP credentials and a verified sender address.
-For Gmail, use an app password (not your account password); Brevo also provides
-SMTP relay credentials on its free tier. Never commit these credentials or
-share them in chat.
+For Render, configure `BREVO_API_KEY` and `EMAIL_FROM` in the hosting
+provider's environment settings. Create a Brevo API key and use a sender
+address verified in Brevo. Production always uses Brevo's HTTPS API, avoiding
+SMTP port restrictions. Local development may use `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM` from `.env`. Never commit these
+credentials or share them in chat.
+
+Run `node scripts/test-email.js recipient@example.com` locally to send a test
+message. The script exits with an error if the email provider rejects it.
 
 An authenticated administrator can clear customer and technician accounts,
 bookings, payments, invoices, and meeting records from the Admin Dashboard.

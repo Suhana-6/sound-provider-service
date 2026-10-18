@@ -72,8 +72,10 @@ router.post("/register", async (req, res) => {
     ).all(userId).map((r) => r.specialty);
   }
 
-  await notifications.sendWelcomeNotification(user);
   res.status(201).json({ user: safeUser, token });
+  void notifications.sendWelcomeNotification(user).catch((err) => {
+    console.error("Welcome email task failed:", err.message);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /* ============================================================================
-   Sound Provider Service - Frontend SPA (vanilla JS, no framework/build step)
+   Project Sound Company - Frontend SPA (vanilla JS, no framework/build step)
    Pure presentation layer: every validation/business rule here mirrors the
    server for instant feedback, but the server is always the source of truth.
    ============================================================================ */
@@ -168,7 +168,7 @@ function renderLogin() {
   return `
     <div class="auth-page">
       <div class="auth-box">
-        <h1>Sound Provider Service</h1>
+        <h1>Project Sound Company</h1>
         <div class="subtitle">Log in to your account</div>
         ${noticeHtml()}
         ${fieldHtml({ id: "login-email", label: "Email", type: "email", error: state.errors.email })}
@@ -307,7 +307,7 @@ function layout(innerHtml) {
 
   return `
     <header class="site-header">
-      <div class="logo">Sound Provider Service<span>${escapeHtml(user.name || "")}${role ? ` · ${escapeHtml(role)}` : ""}</span></div>
+      <div class="logo">Project Sound Company<span>${escapeHtml(user.name || "")}${role ? ` · ${escapeHtml(role)}` : ""}</span></div>
       <div class="nav">
         ${items.map(([screen, label]) => `<button class="${state.screen === screen ? "active" : ""}" onclick="goto('${screen}')">${label}</button>`).join("")}
         ${statusBadge}

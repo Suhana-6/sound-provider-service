@@ -1,7 +1,7 @@
 {
   "name": "sound-provider-service",
   "version": "2.0.0",
-  "description": "Sound Provider Service - booking, technician & payments platform (v2 rebuild)",
+  "description": "Project Sound Company - booking, technician & payments platform",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js"

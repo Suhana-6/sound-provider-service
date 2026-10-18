@@ -33,5 +33,5 @@ app.get("*", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Sound Provider Service v2 running at http://localhost:${PORT}`);
+  console.log(`Project Sound Company running at http://localhost:${PORT}`);
 });
